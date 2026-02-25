@@ -1,0 +1,15 @@
+name = "desmos_formalization"
+version = "0.1.0"
+defaultTargets = ["desmos_formalization"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
+
+[[lean_lib]]
+name = "DesmosFormalization"
+
+[[lean_exe]]
+name = "desmos_formalization"
+root = "Main"
