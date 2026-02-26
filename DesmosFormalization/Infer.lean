@@ -20,5 +20,11 @@ def infer (e : Expr) (Γwack : WackEnv) : Wackscope :=
       let w₁ := infer e₁ Γwack
       let w₂ := infer e₂ Γwack
       mergeByOp w₁ w₂ op
+  | .vardef x e =>
+    by sorry
+  | .fndef f x y e =>
+    by sorry
+  | .fncall f e₁ e₂ =>
+    by sorry
 
   -- | .fncall e₁ e₂ => ?

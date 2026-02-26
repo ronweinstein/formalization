@@ -1,6 +1,7 @@
--- import MathLib.Data.Finset.Basic
 import MathLib.Data.Finset.Prod
 
+-- base primitive types. desmos doesn't have user defined types
+-- or first class functions
 inductive Ty
   | bool
   | number
@@ -21,11 +22,14 @@ inductive BinOp
 
 abbrev Name := String
 
+
 inductive Expr
   | var    : Name -> Expr
   | lit    : Expr
   | binop  : Expr -> Expr -> BinOp -> Expr
-  | fncall : Expr -> Expr -> Expr
+  | fncall : Name -> Expr -> Expr -> Expr
+  | vardef : Name -> Expr -> Expr
+  | fndef  : Name -> Name -> Name -> Expr -> Expr
   deriving Repr
 
 def BinOp.signatures : BinOp -> Finset BinOpSignature

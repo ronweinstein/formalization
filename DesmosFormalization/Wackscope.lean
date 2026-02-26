@@ -10,12 +10,9 @@ def Wackscope.empty : Wackscope := {
   types := ∅
 }
 
-
 def isEmpty (w : Wackscope) : Prop := w.types = ∅
 
 def hasDeps (w : Wackscope) : Prop := w.deps != ∅
-
--- def merge (w₁ w₂ : Wackscope) : Option Wackscope :=
 
 -- restricts the type of the expression to one of the provided types
 def restrict (w : Wackscope) (types : Finset Ty) : Wackscope :=
