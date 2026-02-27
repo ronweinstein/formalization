@@ -15,7 +15,6 @@ def inferExpr (e : Expr) (Γ : VarEnv) (Γfn : FnEnv) : Wackscope :=
       -- otherwise create a new wackscope with dependency 'x' and scheme ≈ ∀α.α
       (Γ x).getD ⟨{ x }, allTys.map fun τ => ⟨τ, fun _ => τ⟩⟩
 
-
   | .binop e₁ e₂ op =>
       -- infer both subexpressions, then get the valid operator overloads
       let w₁ := inferExpr e₁ Γ Γfn
@@ -29,8 +28,9 @@ def inferExpr (e : Expr) (Γ : VarEnv) (Γfn : FnEnv) : Wackscope :=
       let w₂ := inferExpr e₂ Γ Γfn
       mergeByFn w₁ w₂ wf
     else
+      -- return the empty (impossible) scheme if the fonction isn't found
+      -- this doesn't happen with vars because they can just be wackscoped
       Wackscope.empty
-
 
 
 def inferDefinition (definition : Definition) (Γ : VarEnv) (Γfn : FnEnv)
