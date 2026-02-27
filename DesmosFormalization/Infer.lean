@@ -8,7 +8,7 @@ abbrev FnEnv   := Name -> Option FnWackscope
 -- assumes variable definitions are topologically sorted
 def inferExpr (e : Expr) (Γ : VarEnv) (Γfn : FnEnv) : Wackscope :=
   match e with
-  | .lit _ => ⟨∅, [(Ty.number, (nomatch ·))]⟩
+  | .lit => ⟨∅, [(Ty.number, (nomatch ·))]⟩
 
   | .var x =>
       -- return the global variable if it exists,
@@ -28,7 +28,7 @@ def inferExpr (e : Expr) (Γ : VarEnv) (Γfn : FnEnv) : Wackscope :=
       let w₂ := inferExpr e₂ Γ Γfn
       mergeByFn w₁ w₂ wf
     else
-      -- return the empty (impossible) scheme if the fonction isn't found
+      -- return the empty (impossible) scheme if the function isn't found
       -- this doesn't happen with vars because they can just be wackscoped
       Wackscope.empty
 
@@ -47,6 +47,32 @@ def inferDefinition (definition : Definition) (Γ : VarEnv) (Γfn : FnEnv)
       -- -- remove dependence from x/y
       let wf : FnWackscope :=
         let ⟨deps, scheme⟩ := w
+
+        -- let params := [x, y]
+        -- -- let usedParams   := params.filter (· ∈ deps)
+        -- -- let unusedParams := params.filter (· ∉ deps)
+
+        -- let deps' := deps \ params.toFinset
+        -- let h_subset : deps' ⊆ deps := Finset.sdiff_subset
+
+        -- -- -- List (⟨paramTypes, retType⟩, deps -> Ty)
+        -- let scheme' :=
+        --   scheme.flatMap fun ⟨τret, f⟩ =>
+        --     -- [x, y] -> [[τ₁x, τ₁y],[τ₂x, τ₂y], ...]
+        --     let rec prod : List Name -> List (List Ty)
+        --     | [] => [[]]
+        --     | x :: rest =>
+        --         let xTys := if h : x ∈ deps
+        --         then [f ⟨x, by assumption⟩]
+        --         else allTys
+
+        --         (xTys.product (prod rest)).map fun (τx, l) =>
+        --           τx :: l
+
+        --     (prod params).map fun paramTys =>
+        --       (⟨(paramTys[1], paramTys[2]), τret⟩, fun ⟨x, hx⟩ => f ⟨x, h_subset hx⟩)
+
+        -- ⟨deps', scheme'⟩
 
         if hx : x ∈ deps then
           if hy : y ∈ deps then
@@ -97,7 +123,16 @@ def inferProgram (program : List Definition) : VarEnv × FnEnv :=
   program.foldl (fun envs d => inferDefinition d envs.1 envs.2) (Γ, Γfn)
 
 deriving instance Inhabited for Wackscope
-#reduce (let Γprog := inferProgram [.Var "a" (.lit 5.0)]; (Γprog.1 "a").get!.scheme.map (·.1))
+#reduce (let Γprog := inferProgram [.Var "a" (.lit)]; (Γprog.1 "a").get!.scheme.map (·.1))
 #reduce (let Γprog := inferProgram [.Var "a" (.var "b")]; (Γprog.1 "a").get!.scheme.map (·.1))
 #reduce (let Γprog := inferProgram [.Var "a" (.binop (.var "b") (.var "c") .add)]; (Γprog.1 "a").get!.scheme.map (·.1))
-#reduce (let Γprog := inferProgram [.Var "a" (.binop (.var "b") (.var "c") .dot)]; (Γprog.1 "a").get!.scheme.map (·.1))
+#reduce (let Γprog := inferProgram [.Var "a" (.binop (.var "b") (.var "c") .leq)]; (Γprog.1 "a").get!.scheme.map (·.1))
+deriving instance Inhabited for FnWackscope
+-- deriving instance Inhabited for BinOpSignature
+#reduce (
+  let Γprog := inferProgram [
+    .Var "c" (.binop (.var "a") (.var "b") .add),
+    .Fn "f" "a" "b" (.var "c"),
+    .Var "d" (.fncall "f" (.lit ) (.binop .lit .lit .point))
+  ]
+  (Γprog.1 "d").get!.scheme.map (·.1))
