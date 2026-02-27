@@ -22,17 +22,19 @@ inductive BinOp
 
 abbrev Name := String
 
-
 inductive Expr
   | var    : Name -> Expr
   | lit    : Expr
   | binop  : Expr -> Expr -> BinOp -> Expr
   | fncall : Name -> Expr -> Expr -> Expr
-  | vardef : Name -> Expr -> Expr
-  | fndef  : Name -> Name -> Name -> Expr -> Expr
   deriving Repr
 
-def BinOp.signatures : BinOp -> Finset BinOpSignature
+inductive Definition
+  | Var : Name -> Expr -> Definition
+  | Fn  : Name -> Name -> Name -> Expr -> Definition
+
+
+def BinOp.signatures : BinOp -> List BinOpSignature
   | .add => {
       ⟨⟨ .number, .number ⟩, .number⟩, -- scalar addition
       ⟨⟨ .point , .point  ⟩, .point ⟩  -- vector addition
