@@ -8,6 +8,8 @@ inductive Ty
   | point
   deriving DecidableEq, Repr
 
+def allTys : List Ty := [.bool, .number, .point]
+
 structure BinOpSignature where
   params : (Ty × Ty)
   ret    : Ty
@@ -24,7 +26,7 @@ abbrev Name := String
 
 inductive Expr
   | var    : Name -> Expr
-  | lit    : Expr
+  | lit    : Float -> Expr
   | binop  : Expr -> Expr -> BinOp -> Expr
   | fncall : Name -> Expr -> Expr -> Expr
   deriving Repr
@@ -35,19 +37,19 @@ inductive Definition
 
 
 def BinOp.signatures : BinOp -> List BinOpSignature
-  | .add => {
+  | .add => [
       ⟨⟨ .number, .number ⟩, .number⟩, -- scalar addition
       ⟨⟨ .point , .point  ⟩, .point ⟩  -- vector addition
-    }
-  | .dot => {
+    ]
+  | .dot => [
       ⟨⟨ .number, .number ⟩, .number⟩, -- scalar mult
       ⟨⟨ .point , .point  ⟩, .number⟩, -- dot prod
       ⟨⟨ .number, .point  ⟩, .point ⟩, -- scalar prod
       ⟨⟨ .point , .number ⟩, .point ⟩
-    }
-  | .leq => {
+    ]
+  | .leq => [
       ⟨⟨.number, .number⟩, .bool⟩      -- inequalities
-    }
-  | .point => {
+    ]
+  | .point => [
       ⟨⟨.number, .number⟩, .point⟩     -- point constructor
-    }
+    ]
