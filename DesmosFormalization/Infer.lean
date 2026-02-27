@@ -74,7 +74,7 @@ def inferDefinition (definition : Definition) (Γ : VarEnv) (Γfn : FnEnv)
             ⟨deps', scheme'⟩
 
         else if hy : y ∈ deps then
-          let deps' := deps \ { x }
+          let deps' := deps \ { y }
           let scheme' := (scheme.product allTys).map fun (⟨τret, depTypes⟩, τx) =>
             let τy := depTypes ⟨y, hy⟩
             let h_subset : deps' ⊆ deps := by exact Finset.sdiff_subset
