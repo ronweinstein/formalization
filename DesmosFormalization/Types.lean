@@ -26,7 +26,7 @@ abbrev Name := String
 
 inductive Expr
   | var    : Name -> Expr
-  | lit    : Expr
+  | lit    : Float -> Expr
   | binop  : Expr -> Expr -> BinOp -> Expr
   | fncall : Name -> Expr -> Expr -> Expr
   deriving Repr

@@ -8,7 +8,7 @@ abbrev FnEnv   := Name -> Option FnWackscope
 -- assumes variable definitions are topologically sorted
 def inferExpr (e : Expr) (Γ : VarEnv) (Γfn : FnEnv) : Wackscope :=
   match e with
-  | .lit => ⟨∅, [(Ty.number, (nomatch ·))]⟩
+  | .lit _ => ⟨∅, [(Ty.number, (nomatch ·))]⟩
 
   | .var x =>
       -- return the global variable if it exists,
@@ -47,32 +47,6 @@ def inferDefinition (definition : Definition) (Γ : VarEnv) (Γfn : FnEnv)
       -- -- remove dependence from x/y
       let wf : FnWackscope :=
         let ⟨deps, scheme⟩ := w
-
-        -- let params := [x, y]
-        -- -- let usedParams   := params.filter (· ∈ deps)
-        -- -- let unusedParams := params.filter (· ∉ deps)
-
-        -- let deps' := deps \ params.toFinset
-        -- let h_subset : deps' ⊆ deps := Finset.sdiff_subset
-
-        -- -- -- List (⟨paramTypes, retType⟩, deps -> Ty)
-        -- let scheme' :=
-        --   scheme.flatMap fun ⟨τret, f⟩ =>
-        --     -- [x, y] -> [[τ₁x, τ₁y],[τ₂x, τ₂y], ...]
-        --     let rec prod : List Name -> List (List Ty)
-        --     | [] => [[]]
-        --     | x :: rest =>
-        --         let xTys := if h : x ∈ deps
-        --         then [f ⟨x, by assumption⟩]
-        --         else allTys
-
-        --         (xTys.product (prod rest)).map fun (τx, l) =>
-        --           τx :: l
-
-        --     (prod params).map fun paramTys =>
-        --       (⟨(paramTys[1], paramTys[2]), τret⟩, fun ⟨x, hx⟩ => f ⟨x, h_subset hx⟩)
-
-        -- ⟨deps', scheme'⟩
 
         if hx : x ∈ deps then
           if hy : y ∈ deps then
@@ -114,6 +88,32 @@ def inferDefinition (definition : Definition) (Γ : VarEnv) (Γfn : FnEnv)
             ⟨signature, depTypes⟩
           ⟨deps, scheme'⟩
 
+        -- -- attempt at making this n-ary generalizable
+        -- -- it kinda worked but has also heavily messed the #reduce output
+        -- let params := [x, y]
+
+        -- let deps' := deps \ params.toFinset
+        -- let h_subset : deps' ⊆ deps := Finset.sdiff_subset
+
+        -- -- -- List (⟨paramTypes, retType⟩, deps -> Ty)
+        -- let scheme' :=
+        --   scheme.flatMap fun ⟨τret, f⟩ =>
+        --     -- [x, y] -> [[τ₁x, τ₁y],[τ₂x, τ₂y], ...]
+        --     let rec prod : List Name -> List (List Ty)
+        --     | [] => [[]]
+        --     | x :: rest =>
+        --         let xTys := if h : x ∈ deps
+        --         then [f ⟨x, by assumption⟩]
+        --         else allTys
+
+        --         (xTys.product (prod rest)).map fun (τx, l) =>
+        --           τx :: l
+
+        --     (prod params).map fun paramTys =>
+        --       (⟨(paramTys[1], paramTys[2]), τret⟩, fun ⟨x, hx⟩ => f ⟨x, h_subset hx⟩)
+
+        -- ⟨deps', scheme'⟩
+
       (Γ, fun g => if g = f then wf else Γfn g)
 
 -- generates the final environments of a program
@@ -122,17 +122,12 @@ def inferProgram (program : List Definition) : VarEnv × FnEnv :=
   let Γfn : FnEnv  := fun _ => none
   program.foldl (fun envs d => inferDefinition d envs.1 envs.2) (Γ, Γfn)
 
+
+
+
 deriving instance Inhabited for Wackscope
-#reduce (let Γprog := inferProgram [.Var "a" (.lit)]; (Γprog.1 "a").get!.scheme.map (·.1))
-#reduce (let Γprog := inferProgram [.Var "a" (.var "b")]; (Γprog.1 "a").get!.scheme.map (·.1))
-#reduce (let Γprog := inferProgram [.Var "a" (.binop (.var "b") (.var "c") .add)]; (Γprog.1 "a").get!.scheme.map (·.1))
-#reduce (let Γprog := inferProgram [.Var "a" (.binop (.var "b") (.var "c") .leq)]; (Γprog.1 "a").get!.scheme.map (·.1))
-deriving instance Inhabited for FnWackscope
--- deriving instance Inhabited for BinOpSignature
-#reduce (
-  let Γprog := inferProgram [
-    .Var "c" (.binop (.var "a") (.var "b") .add),
-    .Fn "f" "a" "b" (.var "c"),
-    .Var "d" (.fncall "f" (.lit ) (.binop .lit .lit .point))
-  ]
-  (Γprog.1 "d").get!.scheme.map (·.1))
+def getVarType (program : List Definition) (var : Name) : List Ty :=
+  let Γprog := inferProgram program
+  (Γprog.1 var).get!.scheme.map (·.1)
+
+#reduce getVarType [.Var "a" (.lit 5)] "a"
