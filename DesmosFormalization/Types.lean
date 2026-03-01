@@ -28,13 +28,12 @@ inductive Expr
   | var    : Name -> Expr
   | lit    : Float -> Expr
   | binop  : Expr -> Expr -> BinOp -> Expr
-  | fncall : Name -> Expr -> Expr -> Expr
+  | call   : Name -> Expr -> Expr -> Expr
   deriving Repr
 
 inductive Definition
-  | Var : Name -> Expr -> Definition
-  | Fn  : Name -> Name -> Name -> Expr -> Definition
-
+  | varDef : Name -> Expr -> Definition
+  | fnDef  : Name -> Name -> Name -> Expr -> Definition
 
 def BinOp.signatures : BinOp -> List BinOpSignature
   | .add => [

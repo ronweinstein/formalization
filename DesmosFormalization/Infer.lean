@@ -2,51 +2,57 @@ import DesmosFormalization.Types
 import DesmosFormalization.Wackscope
 
 -- global environments for variables and functions
-abbrev VarEnv := Name -> Option Wackscope
-abbrev FnEnv   := Name -> Option FnWackscope
+abbrev VarEnv := Name -> Option Scheme
+abbrev FnEnv   := Name -> Option FnScheme
+
+def VarEnv.extend (Γ : VarEnv) (x : Name) (s : Scheme) : VarEnv :=
+  fun y => if y = x then s else Γ y
+
+def FnEnv.extend (Γ : FnEnv) (f : Name) (fs : FnScheme) : FnEnv :=
+  fun g => if g = f then fs else Γ g
 
 -- assumes variable definitions are topologically sorted
-def inferExpr (e : Expr) (Γ : VarEnv) (Γfn : FnEnv) : Wackscope :=
+def inferExpr (Γv : VarEnv) (Γf : FnEnv) (e : Expr) : Scheme :=
   match e with
   | .lit _ => ⟨∅, [(Ty.number, (nomatch ·))]⟩
 
   | .var x =>
       -- return the global variable if it exists,
       -- otherwise create a new wackscope with dependency 'x' and scheme ≈ ∀α.α
-      (Γ x).getD ⟨{ x }, allTys.map fun τ => ⟨τ, fun _ => τ⟩⟩
+      (Γv x).getD (Scheme.freeVar x)
 
   | .binop e₁ e₂ op =>
       -- infer both subexpressions, then get the valid operator overloads
-      let w₁ := inferExpr e₁ Γ Γfn
-      let w₂ := inferExpr e₂ Γ Γfn
-      mergeByOp w₁ w₂ op
+      let s₁ := inferExpr Γv Γf e₁
+      let s₂ := inferExpr Γv Γf e₂
+      mergeByOp s₁ s₂ op
 
-  | .fncall f e₁ e₂ =>
+  | .call f e₁ e₂ =>
       -- same as binop really
-    if let some wf := Γfn f then
-      let w₁ := inferExpr e₁ Γ Γfn
-      let w₂ := inferExpr e₂ Γ Γfn
-      mergeByFn w₁ w₂ wf
+    if let some fs := Γf f then
+      let s₁ := inferExpr Γv Γf e₁
+      let s₂ := inferExpr Γv Γf e₂
+      mergeByFn s₁ s₂ fs
     else
       -- return the empty (impossible) scheme if the function isn't found
       -- this doesn't happen with vars because they can just be wackscoped
-      Wackscope.empty
+      Scheme.empty
 
 
-def inferDefinition (definition : Definition) (Γ : VarEnv) (Γfn : FnEnv)
+def inferDefinition (definition : Definition) (Γv : VarEnv) (Γf : FnEnv)
   : VarEnv × FnEnv :=
   match definition with
-  | .Var x e =>
-      let e_wack := inferExpr e Γ Γfn;
-      (fun y => if x = y then e_wack else Γ y, Γfn)
+  | .varDef x e =>
+      let s := inferExpr Γv Γf e;
+      (Γv.extend x s, Γf)
 
   -- needs a way to return all possible types for unused variable
-  | .Fn f x y e =>
+  | .fnDef f x y e =>
       -- get the expression type
-      let w := inferExpr e Γ Γfn
+      let s := inferExpr Γv Γf e
       -- -- remove dependence from x/y
-      let wf : FnWackscope :=
-        let ⟨deps, scheme⟩ := w
+      let fs : FnScheme :=
+        let ⟨deps, scheme⟩ := s
 
         if hx : x ∈ deps then
           if hy : y ∈ deps then
@@ -114,20 +120,20 @@ def inferDefinition (definition : Definition) (Γ : VarEnv) (Γfn : FnEnv)
 
         -- ⟨deps', scheme'⟩
 
-      (Γ, fun g => if g = f then wf else Γfn g)
+      (Γv, Γf.extend f fs)
 
 -- generates the final environments of a program
 def inferProgram (program : List Definition) : VarEnv × FnEnv :=
   let Γ   : VarEnv := fun _ => none
-  let Γfn : FnEnv  := fun _ => none
-  program.foldl (fun envs d => inferDefinition d envs.1 envs.2) (Γ, Γfn)
+  let Γf : FnEnv  := fun _ => none
+  program.foldl (fun envs d => inferDefinition d envs.1 envs.2) (Γ, Γf)
 
 
 
-
-deriving instance Inhabited for Wackscope
+-- helper for printing types with #reduce
+deriving instance Inhabited for Scheme
 def getVarType (program : List Definition) (var : Name) : List Ty :=
   let Γprog := inferProgram program
   (Γprog.1 var).get!.scheme.map (·.1)
 
-#reduce getVarType [.Var "a" (.lit 5)] "a"
+#reduce getVarType [.varDef "a" (.lit 5)] "a"
